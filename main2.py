@@ -72,7 +72,13 @@ class color:
 
 def R(i, a_x, a_y, a_z, H):
     """
-    Definition of R the distance from the sound source, a, to microphone i in 2D
+    Calculates the distance from source to microphone i.
+    :param i: Microphone
+    :param a_x: x-
+    :param a_y:
+    :param a_z:
+    :param H:
+    :return:
     """
     return np.sqrt(np.power((H[i][0] - a_x), 2) + np.power((H[i][1] - a_y), 2) + np.power((H[i][2] - a_z), 2))
 
