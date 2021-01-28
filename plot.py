@@ -1,163 +1,29 @@
 import numpy as np
 
+from error_functions.py import *
+from error_model.py import *
+from environ_param.py import *
+
 import matplotlib as plt
 
-def plot_wind_mic2_4(H, dir_wind, v_wind, a_xrange, a_yrange, a_z=0.001, increment=1):
-    a_xmin = 5 - a_xrange / 2
-    a_ymin = 5 - a_yrange / 2
 
-    i_loop = int(a_xrange / increment)
-    j_loop = int(a_yrange / increment)
+def plot_wind(xrange, yrange, H, wind, sensor_no):
 
-    x = np.arange(a_xmin, a_xrange + a_xmin, increment)
-    y = np.arange(a_ymin, a_yrange + a_ymin, increment)
+    Z, indicator = calculate_error_contours(xrange,yrange,H,err_function='wind',wind=wind,sensor_no=sensor_no)
 
-    absolute_error_wind_microphone1 = np.zeros((i_loop, j_loop))
-    absolute_error_wind_microphone2 = np.zeros((i_loop, j_loop))
-    absolute_error_wind_microphone3 = np.zeros((i_loop, j_loop))
-    absolute_error_wind_microphone4 = np.zeros((i_loop, j_loop))
-
-    for i in range(i_loop):
-        for j in range(j_loop):
-            a_x = a_xmin + i
-            a_y = a_ymin + j
-            a_z = 0.00001
-            a = np.array([a_x, a_y, a_z])
-
-            for k in range(4):
-                line_to_sensor = np.subtract(H[k], a)
-
-                line_to_sensor = line_to_sensor / np.linalg.norm(
-                    line_to_sensor)  # Normalize the line from sound source to sensor
-
-                dc = np.multiply(np.dot(dir_wind, line_to_sensor),
-                                 v_wind)  # Multiply the direction coefficient (dot product) by wind speed to get the change in speed of sound for the particular sensor
-                print(dc)
-                error_matrix_sos = E_sos(a_x, a_y, a_z, H,
-                                         dc)  # Calculate a particular error matrix for that speed of sound, will have to then have an error matrix FOR EACH MICROPHONE
-
-                if k == 0:
-                    absolute_error_wind_microphone1[j][i] = np.sqrt(
-                        np.power(error_matrix_sos[0][0], 2) + np.power(error_matrix_sos[1][0], 2) + np.power(
-                            error_matrix_sos[3][0],
-                            2))
-
-                elif k == 1:
-                    absolute_error_wind_microphone2[j][i] = np.sqrt(
-                        np.power(error_matrix_sos[0][0], 2) + np.power(error_matrix_sos[1][0], 2) + np.power(
-                            error_matrix_sos[3][0],
-                            2))
-
-                elif k == 2:
-                    absolute_error_wind_microphone3[j][i] = np.sqrt(
-                        np.power(error_matrix_sos[0][0], 2) + np.power(error_matrix_sos[1][0], 2) + np.power(
-                            error_matrix_sos[3][0],
-                            2))
-
-                else:
-                    absolute_error_wind_microphone4[j][i] = np.sqrt(
-                        np.power(error_matrix_sos[0][0], 2) + np.power(error_matrix_sos[1][0], 2) + np.power(
-                            error_matrix_sos[3][0],
-                            2))
-
-    indicator = calculate_error_indicator(absolute_error_wind_microphone2)
-
-    print("Indicative error for microphone 2 with wind speed of %d and direction vector [1,1,0]: %f" % (
-        v_wind, indicator))
-
-    X, Y = np.meshgrid(x, y, indexing='xy')
-
-    fig, (ax1, ax2) = plt.subplots(1, 2)
-    fig.suptitle('Horizontally stacked subplots')
-    contours = ax1.contour(X, Y, absolute_error_wind_microphone2)
-    ax1.clabel(contours, inline=True, fontsize=16, fmt='%1.1f')
-    ax1.plot(0, 0, 'o', color='black', label="Microphone positions")
-    ax1.plot(10, 0, 'o', color='green', label="Microphone 2")
-    ax1.plot(10, 10, 'o', color='black')
-    ax1.plot(0, 10, 'o', color='red')
-    ax1.text(4, 5, "<0.2m")
-    # plt.gca().add_patch(plt.Polygon(H2D, facecolor=None, fill=False))
-    fig.suptitle(
-        "Absolute position error for microphone 2 and 4 \nwith wind speed %0.1f m/s and direction 45°" % (v_wind),
-        wrap=True, fontsize=20)
-    ax1.set_xlabel("x (m)\n\nIndicative error is %0.2f" % (indicator), fontsize=20)
-    ax1.set_ylabel("y (m)", fontsize=20)
-
-    indicator = calculate_error_indicator(absolute_error_wind_microphone4)
-
-    contours = ax2.contour(X, Y, absolute_error_wind_microphone4)
-    ax2.clabel(contours, inline=True, fontsize=16, fmt='%1.1f')
-    ax2.plot(0, 0, 'o', color='black', label="Microphones")
-    ax2.plot(10, 0, 'o', color='green', label="Microphone 2")
-    ax2.plot(10, 10, 'o', color='black')
-    ax2.plot(0, 10, 'o', color='red', label='Microphone 4')
-    ax2.text(4, 5, "<0.2m")
-    # plt.gca().add_patch(plt.Polygon(H2D, facecolor=None, fill=False))
-    ax2.legend(framealpha=1, fontsize=14)
-    # ax2.title("Absolute position error for microphone 4 wind speed %0.1f and direction 45°" % (v_wind),wrap=True)
-    ax2.set_xlabel("x (m)\n\nIndicative error is %0.2f" % (indicator), fontsize=20)
-    # ax2.ylabel("y (m)")
-
-    plt.show()
+    contour_plot(xrange,yrange,Z,H)
 
 
-def plot_temp(H, temp_deg, a_xrange, a_yrange, temp_assume=20, a_z=0.001, increment=1):
+def plot_temp(H, temp_deg, xrange, yrange, temp_assume=20):
     temp = temp_deg + 273.15  # Convert temperature into Kelvin
     temp_assume = temp_assume + 273.15
-    dt = temp - temp_assume
-
-    a_xmin = 5 - a_xrange / 2
-    a_ymin = 5 - a_yrange / 2
-
-    i_loop = int(a_xrange / increment)
-    j_loop = int(a_yrange / increment)
-
-    absolute_error_temp = np.zeros((i_loop, j_loop))
-
-    x = np.arange(a_xmin, a_xrange + a_xmin, increment)
-    y = np.arange(a_ymin, a_yrange + a_ymin, increment)
 
     dc = np.sqrt(1.402 * 8310 * temp / 28.966) - np.sqrt(
         1.402 * 8310 * temp_assume / 28.966)  # Get the difference in speed of sound from assumed
 
-    print(dc)
+    Z, indicator = calculate_error_contours(xrange, yrange, a, H, err_function='temp', dc=dc)
 
-    for i in range(i_loop):
-        for j in range(j_loop):
-            a_x = a_xmin + i
-            a_y = a_ymin + j
-            a = [a_x, a_y, a_z]
-
-            error_matrix_temp = E_sos(a_x, a_y, a_z, H, dc)
-
-            absolute_error_temp[j][i] = np.sqrt(
-                np.power(error_matrix_temp[0][0], 2) + np.power(error_matrix_temp[1][0], 2) + np.power(
-                    error_matrix_temp[3][0],
-                    2))
-
-    indicator = calculate_error_indicator(absolute_error_temp)
-
-    print("Indicative error for temperature deviation of %d: %f" % (dt, indicator))
-
-    X, Y = np.meshgrid(x, y, indexing='xy')
-
-    plt.figure(1)
-
-    # Z = np.sqrt(np.power(E_vec(X, Y, H, dc)[0][0], 2) + np.power(E_vec(X, Y, H, dc)[1][0], 2))
-
-    contours = plt.contour(X, Y, absolute_error_temp)  # levels=[0.2,0.4, 0.6, 1], colors=['b', 'r', 'g'])
-    plt.clabel(contours, inline=True, fontsize=16, fmt='%1.1f')
-    plt.plot(0, 0, 'o', color='black', label="Microphone positions")
-    plt.plot(10, 0, 'o', color='black')
-    plt.plot(10, 10, 'o', color='black')
-    plt.plot(0, 10, 'o', color='black')
-    plt.text(4, 5, "<0.25m")
-    # plt.gca().add_patch(plt.Polygon(H2D, facecolor=None, fill=False))
-    plt.legend(framealpha=1)
-    plt.title("Absolute position error for temperature error $\Delta$%0.1f°C" % (dt), fontsize=20, wrap=True)
-    plt.xlabel("x (m)\n\nIndicative error is %0.2f" % (indicator), fontsize=20)
-    plt.ylabel("y (m)", fontsize=20)
-    plt.show()
+    contour_plot(xrange, yrange, Z, H)
 
 
 def plot_humid(H, temp_deg, rel_humid, a_xrange, a_yrange, temp_assume=20, a_z=0.001, increment=1):
@@ -261,6 +127,7 @@ def plot_pair_sourceHeight(h1, h2, a_x, a_z):
     plt.legend()
     plt.show()
 
+
 def plot_SNR(coeff, db_of_sound_source, dBthreshold=10):
     ymin = 0
     xmax = 50
@@ -300,6 +167,7 @@ def plot_SNR(coeff, db_of_sound_source, dBthreshold=10):
     # plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
 
     plt.show()
+
 
 def plot_2D_nominal(H, v_sound, a_xrange, a_yrange, a_z=1, increment=1):
     a_xmin = 5 - a_xrange / 2
@@ -385,7 +253,7 @@ def plot_2D_nominal(H, v_sound, a_xrange, a_yrange, a_z=1, increment=1):
     plt.show()
 
 
-def plot_sos_time_total(H, DT, dc, v_sound, a_xrange, a_yrange, a_z=0.001, increment=1):
+def plot_sos_time_total(H, DT, dc, v_sound, a_xrange, a_yrange, a, increment=1):
     a_xmin = 5 - a_xrange / 2
     a_ymin = 5 - a_yrange / 2
 
@@ -477,7 +345,65 @@ def plot_sos_time_total(H, DT, dc, v_sound, a_xrange, a_yrange, a_z=0.001, incre
     # plt.close('all')
     plt.show()
 
-def contour_plot(xrange, yrange, Z, H):
+
+def calculate_error_contours(xrange, yrange, H, err_function='temp', dc=0, a=np.zeros((3,1)), DT=np.zeros((4, 1)),sensor_no=0,wind=np.zeros((3,1))
+    xmin = int(H[1][0] / 2 - xrange / 2)
+    ymin = int(H[2][1] / 2 - yrange / 2)
+
+    Z = np.zeros((xrange, yrange))
+
+    for i in range(xrange):
+        for j in range(yrange):
+            a[0] = xmin + i
+            a[1] = ymin + j
+            a[2] = 0.0001
+
+            if err_function == 'temp':
+                error_matrix = E_sos(a, H, dc)
+
+                Z[j][i] = np.sqrt(
+                    np.power(error_matrix[0][0], 2) + np.power(error_matrix[1][0], 2) + np.power(
+                        error_matrix[3][0],
+                        2))
+
+            elif err_function == 'wind':
+                for k in range(4):
+                    line2sensor = np.subtract(H[sensor_no], a.T)
+
+                    line2sensor = line2sensor / np.linalg.norm(
+                        line2sensor)  # Normalize the line from sound source to sensor
+
+                    dc = np.dot(wind, line2sensor)  # Dot product of wind and the line2 sensor gives the change in speed of sound
+
+                    error_matrix = E_sos(a, H,
+                                             dc)  # Calculate a particular error matrix for that speed of sound, will have to then have an error matrix FOR EACH MICROPHONE
+
+                    Z[j][i] = np.sqrt(
+                            np.power(error_matrix[0][0], 2) + np.power(error_matrix[1][0], 2) + np.power(
+                                error_matrix[3][0],
+                                2))
+
+            elif err_function == '2D':
+            elif err_function == 'humidity':
+            elif err_function == 'SNR':
+                pass
+            elif err_function == 'dc':
+
+
+            else:
+                raise ...
+
+                absolute_error_temp[j][i] = np.sqrt(
+                np.power(error_matrix_temp[0][0], 2) + np.power(error_matrix_temp[1][0], 2) + np.power(
+                    error_matrix_temp[3][0],
+                    2))
+
+    indicator = calculate_error_indicator(Z)
+
+    return Z, indicator
+
+
+def contour_plot(xrange, yrange, Z, H, title=None):
     plt.figure(1)
 
     a_xmin = 5 - xrange / 2
@@ -486,15 +412,24 @@ def contour_plot(xrange, yrange, Z, H):
     x = np.arange(a_xmin, xrange + a_xmin, 1)
     y = np.arange(a_ymin, yrange + a_ymin, 1)
 
+    X, Y = np.meshgrid(x, y
+    indexing = 'xy')
+
     contours = plt.contour(X, Y, Z)
     plt.clabel(contours, inline=True, fontsize=16, fmt='%1.1f')
 
     plt.plot(H[0][0], H[0][1], 'o', color='black', label="Microphone positions")
-    plt.plot(H[1][0], H[1][1], 'o', color='red', label="Microphone 2")
+    plt.plot(H[1][0], H[1][1], 'o', color='black')
     plt.plot(H[2][0], H[2][1], 'o', color='black')
     plt.plot(H[3][0], H[3][1], 'o', color='black')
     plt.legend(framealpha=1)
-    plt.title("Nominal error for microphone 2 and 4 with a sound source height of %0.1f m" % (a_z), wrap=True,
-              fontsize=16)
-    plt.xlabel("x (m)\n\nIndicative error is %0.2f" % (indicator), fontsize=16)
+
+    if title:
+        plt.title("%s" % title, wrap=True,
+                  fontsize=16)
+
+    plt.xlabel("x (m)", fontsize=16)
     plt.ylabel("y (m)", fontsize=16)
+
+    plt.show()
+    pass

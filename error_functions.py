@@ -62,11 +62,12 @@ def E_2D(a_x, a_y, a_z, H, v_sound, i, j):
 
     return np.multiply(a_z, dDt_dv)  # Returns the change in arrival time between microphones i and j
 
-def calculate_error_indicator(error_matrix):
+def calculate_error_indicator(error_matrix,xrange,yrange):
     # Integrate
     sum = 0
-    for i in range(5, 15, 1):
-        for j in range(5, 15, 1):
+
+    for i in range(5, 15):
+        for j in range(5, 15):
             sum += error_matrix[j][i]
 
     # Return error square divided by area of the box
