@@ -346,7 +346,8 @@ def plot_sos_time_total(H, DT, dc, v_sound, a_xrange, a_yrange, a, increment=1):
     plt.show()
 
 
-def calculate_error_contours(xrange, yrange, H, err_function='temp', dc=0, a=np.zeros((3,1)), DT=np.zeros((4, 1)),sensor_no=0,wind=np.zeros((3,1))
+def calculate_error_contours(xrange, yrange, H, err_function='temp', dc=0, a=np.zeros((3,1)), DT=np.zeros((4, 1)),sensor_no=0,wind=np.zeros((3,1)):
+
     xmin = int(H[1][0] / 2 - xrange / 2)
     ymin = int(H[2][1] / 2 - yrange / 2)
 
@@ -356,7 +357,6 @@ def calculate_error_contours(xrange, yrange, H, err_function='temp', dc=0, a=np.
         for j in range(yrange):
             a[0] = xmin + i
             a[1] = ymin + j
-            a[2] = 0.0001
 
             if err_function == 'temp':
                 error_matrix = E_sos(a, H, dc)
