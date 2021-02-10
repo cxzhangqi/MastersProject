@@ -541,7 +541,6 @@ def humid(temp_deg, rel_humid):
 
     return abs_humidity, density_humid
 
-
 def plot_humid(H, temp_deg, rel_humid, a_xrange, a_yrange, temp_assume=20, a_z=0.001, increment=1):
     temp = temp_deg + 273.15  # Convert temperature into Kelvin
 
@@ -746,7 +745,7 @@ def plot_SNR(coeff,db_of_sound_source,dBthreshold=10):
 
 #plot_sos_time_total(H,DT,dc,v_sound,a_xrange,a_yrange)
 
-plot_wind_mic2_4(H,dir_wind,v_wind,a_xrange,a_yrange)
+# plot_wind_mic2_4(H,dir_wind,v_wind,a_xrange,a_yrange)
 
 # plot_temp(H,temp_deg,a_xrange,a_yrange)
 #
@@ -757,3 +756,17 @@ plot_wind_mic2_4(H,dir_wind,v_wind,a_xrange,a_yrange)
 # plot_pair_sourceHeight(h2d,h4d,10,1)
 
 #plot_SNR(coeff,db_of_sound_source)
+
+h1 = [0, 0, 0]
+h2 = [0, 10, 0]
+h3 = [10, 10, 0]
+h4 = [10, 0, 0]
+
+H = np.array([h1, h2, h3, h4])
+
+x = np.linspace(-20,20,100)
+y = np.linspace(-20,20,100)
+
+a = np.array([x, y, 0])
+
+Z = E_sos(x, y, 0, H, dc)

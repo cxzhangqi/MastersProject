@@ -1,9 +1,9 @@
 import numpy as np
 
-from error_model import *
-from environ_param import *
+from error_model import R, E_sos
+from environ_param import humid, sos
 
-import matplotlib.plot as plt
+import matplotlib.pyplot as plt
 
 
 def plot_wind(xrange, yrange, H, wind, sensor_no):
@@ -123,6 +123,7 @@ def plot_SNR(coeff, db_of_sound_source, dBthreshold=10):
 
 
 def plot_2D_nominal(xrange, yrange, H, v_sound, sensor_pair=(2, 4)):
+    pass
 
 
 def plot_sos_time_total(H, DT, dc, v_sound, a_xrange, a_yrange, a, increment=1):
@@ -175,7 +176,7 @@ def plot_sos_time_total(H, DT, dc, v_sound, a_xrange, a_yrange, a, increment=1):
 
     # Z = np.sqrt(np.power(E_vec(X, Y, H, dc)[0][0], 2) + np.power(E_vec(X, Y, H, dc)[1][0], 2))
 
-    contours = plt.contour(X, Y, absolute_error_sos, )  # levels=[0.2,0.4, 0.6, 1], colors=['b', 'r', 'g'])
+    contours = plt.contour(X, Y, absolute_error_sos)  # levels=[0.2,0.4, 0.6, 1], colors=['b', 'r', 'g'])
     plt.clabel(contours, inline=True, fontsize=10)
     plt.plot(0, 0, 'o', color='black', label="Microphone positions")
     plt.plot(10, 0, 'o', color='black')
@@ -233,28 +234,26 @@ def calculate_error_contours(xrange, yrange, H, err_function='dc', dc=0., a=np.z
             if err_function == 'dc':
                 error_matrix = E_sos(a, H, dc)
 
+                print(error_matrix)
+
+                Z[j][i] = np.sqrt(np.sum(np.square(error_matrix, axis=0)))
+
+            elif err_function == 'wind':
+                line2sensor = np.subtract(H, a)
+
+                line2sensor = line2sensor / np.linalg.norm(
+                    line2sensor)  # Normalize the line from sound source to sensor
+
+                dc = np.dot(wind,
+                            line2sensor)  # Dot product of wind and the line2 sensor gives the change in speed of sound
+
+                error_matrix = E_sos(a, H,
+                                     dc)  # Calculate a particular error matrix for that speed of sound, will have to then have an error matrix FOR EACH MICROPHONE
+
                 Z[j][i] = np.sqrt(
                     np.power(error_matrix[0][0], 2) + np.power(error_matrix[1][0], 2) + np.power(
                         error_matrix[3][0],
                         2))
-
-            elif err_function == 'wind':
-                for k in range(4):
-                    line2sensor = np.subtract(H[sensor_no], a.T)
-
-                    line2sensor = line2sensor / np.linalg.norm(
-                        line2sensor)  # Normalize the line from sound source to sensor
-
-                    dc = np.dot(wind,
-                                line2sensor)  # Dot product of wind and the line2 sensor gives the change in speed of sound
-
-                    error_matrix = E_sos(a, H,
-                                         dc)  # Calculate a particular error matrix for that speed of sound, will have to then have an error matrix FOR EACH MICROPHONE
-
-                    Z[j][i] = np.sqrt(
-                        np.power(error_matrix[0][0], 2) + np.power(error_matrix[1][0], 2) + np.power(
-                            error_matrix[3][0],
-                            2))
 
             elif err_function == '2D':
                 print("\nIn this case the returned array is an array of arrays, with each element of the array being an array of the distance errors between pairs of microphones. \nEach of these sub-arrays SHOULD have 0 along their diagonals, and be (negatively/anti) symmetric")
@@ -272,7 +271,7 @@ def calculate_error_contours(xrange, yrange, H, err_function='dc', dc=0., a=np.z
 
                 print(Dt_actual)
 
-                diff = H[:][:-1] - a.T[:-1]
+                diff = H[:][:-1] - a[:-1]
                 print(diff)
 
                 h = np.sqrt(np.dot(diff,diff.T))
@@ -305,8 +304,7 @@ def contour_plot(xrange, yrange, Z, H, title=None):
     x = np.arange(a_xmin, xrange + a_xmin, 1)
     y = np.arange(a_ymin, yrange + a_ymin, 1)
 
-    X, Y = np.meshgrid(x, y
-    indexing = 'xy')
+    X, Y = np.meshgrid(x, y, indexing = 'xy')
 
     contours = plt.contour(X, Y, Z)
     plt.clabel(contours, inline=True, fontsize=16, fmt='%1.1f')
@@ -326,3 +324,5 @@ def contour_plot(xrange, yrange, Z, H, title=None):
 
     plt.show()
     pass
+
+

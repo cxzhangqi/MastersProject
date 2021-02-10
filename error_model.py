@@ -1,6 +1,7 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
-def R(a, H):
+def R(a, H, model='3D'):
     """
     Calculates the distance from source to microphone i.
     :param i: integer
@@ -8,17 +9,22 @@ def R(a, H):
     :param H: 4x3 np.darray, co-ordinates of microphones
     :return: 4x1 ndarray, distance from microphones to source a
     """
-    z = H - a.T
+    if model == '3D':
+        z = H - a
 
-    return np.sqrt(np.sum(np.square(z)), axis=0)
+        return np.sqrt(np.sum(np.square(z), axis=0))
+    else:
+        z = H[:][:-1] - a[:-1]
+        return np.sqrt(np.sum(np.square(z), axis=0))  # Could also dot Z with Z.T, don't know which is better
+
+
 
 def M(a, H):
-    m = np.divide((H - a.T), R(a, H), out=np.zeros_like((H - a.T), where=R(a, H)!=0))    # When R returns 0 this will just put 0 in array, rather than a divide by 0 error
-    return np.concatenate(m, np.ones((4,1)),axis=1)
+    m = np.divide((H - a), R(a, H), out=np.zeros_like((H - a), where=R(a, H)!=0))    # When R returns 0 this will just put 0 in array, rather than a divide by 0 error
+    return np.concatenate(m, np.ones((4,1)), axis=1)
 
 def D(a, H, v_sound):
-    d = np.divide((H - a.T), v_sound * R(a, H), out=np.zeros_like((H - a.T), where=R(a,
-                                                                           H) != 0))  # When R returns 0 this will just put 0 in array, rather than a divide by 0 error
+    d = np.divide((H - a), v_sound * R(a, H), out=np.zeros_like((H - a), where=R(a,H) != 0))  # When R returns 0 this will just put 0 in array, rather than a divide by 0 error
     return np.concatenate(d, np.ones((4, 1)), axis=1)
 
 def d(i, j, a, H, v_sound):
@@ -53,7 +59,7 @@ def dDt_dv_ij(i, j, a, H, v_sound):
     return np.multiply(np.divide(a_z, v_sound), np.subtract(np.divide(1, np.sqrt(np.power(a_z, 2) + np.power(h_i, 2))),
                                                             np.divide(1, np.sqrt(np.power(a_z, 2) + np.power(h_j, 2)))))
 
-def E_sos(a, H, dc):
+def E_sos(a, H, dc, v_sound):
     """
     Returns a 4x1 matrix containing the position estimate errors for error in speed of sound, dc
     First index is error in x
@@ -65,22 +71,13 @@ def E_sos(a, H, dc):
     :return: 4x1 ndarray containing position estimate errors DAx, DAy, DAz and ...
     """
 
-    M = np.zeros((4, 4))
+    M_matrix = M(a, H)
 
-    for i in range(4):
-        M[i][3] = 1
-        for j in range(3):
-            M[i][j] = m(i, j, a_x, a_y, a_z, H)
+    M_inv = np.linalg.inv(M_matrix, out=np.zeros_like(M_matrix), where=np.linalg.cond(M_matrix) < 1/sys.float_info.epsilon)
 
-    if np.linalg.det(M) == 0:  # Need to figure out a better way of handling this. For now just do this?
-        print("\n  SOS buggered")
-    M_inv = np.linalg.inv(M)
+    T = R(a, H) / v_sound
 
-    T = np.array([[np.divide(R(0, a_x, a_y, a_z, H), v_sound)], [np.divide(R(1, a_x, a_y, a_z, H), v_sound)],
-                  [np.divide(R(2, a_x, a_y, a_z, H), v_sound)], [np.divide(R(3, a_x, a_y, a_z, H), v_sound)]])
-
-    return np.multiply(np.matmul(M_inv, T), dc)  # This is a 4x1 array
-
+    return np.multiply(np.matmul(M_inv, T), dc)  # This is a 4x1 array with all the errors in position and that final Rm
 
 def E_time(a_x, a_y, a_z, H, DT, v_sound):
     """
