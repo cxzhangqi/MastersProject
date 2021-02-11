@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 def humid(temp_deg, rel_humid):
     vapor_pressure = 1000 * 0.61121 * np.exp((18.678 - temp_deg / 234.5) * (
@@ -31,9 +32,9 @@ def sos(temp_deg, rel_humid):
     return sos
 
 
-def attenuation_coeff(f, temp_deg, rel_humid):
+def attenuation_coeff(freq, temp_deg, rel_humid):
     # Convert frequency in Hz to radians
-    w = f * 2 * np.pi
+    w = freq * 2 * np.pi
     print(w)
 
     # Convert temp to Kelvin
@@ -66,7 +67,7 @@ def attenuation_eq(coeff, A_0, x):
     #
     # A = A_0 + A
 
-    y = 20 * np.log10(x) + A_0 * (1 - np.power(np.e, -coeff * x / 2))  # NEED TO CHECK IF THIS IS CORRECT
+    y = 20 * np.log10(x) + A_0 * (1 - np.exp(-coeff * x))  # NEED TO CHECK IF THIS IS CORRECT
 
     # x_solve = sympy.symbols('x_solve')
     #
@@ -75,3 +76,24 @@ def attenuation_eq(coeff, A_0, x):
     # zero_crossing = solve(A_0 - 20*np.log10(x_solve) + A_0*(1 - np.power(np.e,-coeff*x_solve/2)),x)
 
     return A_0 - y  # , zero_crossing[0]
+
+def dB_at_x(coeff, x, A_0):
+
+    return 10*np.log10((1 / x**2) * np.exp(-coeff * x))
+
+def dB_at_x_2(coeff, x, A_0):
+
+    return A_0 + 20*np.log10(1 / x) - 10 * coeff * x * np.log10(np.e)
+
+A_0 = 85
+coeff = attenuation_coeff(10000, 20, 85)
+x = np.linspace(1, 80, 100)
+y = dB_at_x(coeff, x, A_0)
+plt.figure()
+plt.plot(x,y)
+
+plt.figure()
+y = dB_at_x_2(coeff, x, A_0)
+plt.plot(x, y)
+
+plt.show()

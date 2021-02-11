@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
 
 def R(a, H, model='3D'):
     """
@@ -7,21 +8,19 @@ def R(a, H, model='3D'):
     :param i: integer
     :param a: 3x1 np.darray, co-ordinates of source
     :param H: 4x3 np.darray, co-ordinates of microphones
-    :return: 4x1 ndarray, distance from microphones to source a
+    :return: 1x4 ndarray, distance from microphones to source a
     """
     if model == '3D':
         z = H - a
-
-        return np.sqrt(np.sum(np.square(z), axis=0))
+        return np.sqrt(np.sum(np.square(z), axis=1))
     else:
         z = H[:][:-1] - a[:-1]
-        return np.sqrt(np.sum(np.square(z), axis=0))  # Could also dot Z with Z.T, don't know which is better
-
+        return np.sqrt(np.sum(np.square(z), axis=1))  # Could also dot Z with Z.T, don't know which is better
 
 
 def M(a, H):
-    m = np.divide((H - a), R(a, H), out=np.zeros_like((H - a), where=R(a, H)!=0))    # When R returns 0 this will just put 0 in array, rather than a divide by 0 error
-    return np.concatenate(m, np.ones((4,1)), axis=1)
+    m = np.divide((H - a), R(a, H, model="3D"), out=np.zeros_like(H - a), where=R(a, H)!=0)    # When R returns 0 this will just put 0 in array, rather than a divide by 0 error
+    return np.concatenate((m, np.ones((4, 1))), axis=1)
 
 def D(a, H, v_sound):
     d = np.divide((H - a), v_sound * R(a, H), out=np.zeros_like((H - a), where=R(a,H) != 0))  # When R returns 0 this will just put 0 in array, rather than a divide by 0 error
@@ -70,14 +69,17 @@ def E_sos(a, H, dc, v_sound):
     :param dc: float, error in speed of sound estimate
     :return: 4x1 ndarray containing position estimate errors DAx, DAy, DAz and ...
     """
-
     M_matrix = M(a, H)
 
-    M_inv = np.linalg.inv(M_matrix, out=np.zeros_like(M_matrix), where=np.linalg.cond(M_matrix) < 1/sys.float_info.epsilon)
+    try:
+        M_inv = np.linalg.inv(M_matrix)
+    except:
+        M_inv = np.zeros((4, 4))
 
-    T = R(a, H) / v_sound
+    T = R(a, H, model="3D") / v_sound
+    print(T)
 
-    return np.multiply(np.matmul(M_inv, T), dc)  # This is a 4x1 array with all the errors in position and that final Rm
+    return np.matmul(M_inv, T) * dc  # This is a 4x1 array with all the errors in position and that final Rm
 
 def E_time(a_x, a_y, a_z, H, DT, v_sound):
     """
@@ -122,3 +124,21 @@ def calculate_error_indicator(error_matrix,xrange,yrange):
 
     # Return error square divided by area of the box
     return np.divide(np.power(sum, 2), 100)
+
+h1 = [0, 0, 0]
+h2 = [0, 10, 0]
+h3 = [10, 10, 0]
+h4 = [10, 0, 0]
+H = np.array([h1, h2, h3, h4], dtype=float)
+
+x = np.linspace(-20, 20, 100)
+y = np.linspace(-20, 20, 100)
+
+X, Y = np.meshgrid(x, y, indexing='xy')
+
+a = np.array([X, Y, np.zeros_like(X)])
+
+
+#print(X)
+#print(Y)
+#print(M(a, H))

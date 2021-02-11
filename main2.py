@@ -755,7 +755,7 @@ def plot_SNR(coeff,db_of_sound_source,dBthreshold=10):
 #
 # plot_pair_sourceHeight(h2d,h4d,10,1)
 
-#plot_SNR(coeff,db_of_sound_source)
+plot_SNR(coeff,db_of_sound_source)
 
 h1 = [0, 0, 0]
 h2 = [0, 10, 0]

@@ -5,26 +5,27 @@ from environ_param import humid, sos
 
 import matplotlib.pyplot as plt
 
+def plot_wind(xpoints, ypoints, H, wind, sensor_no):
+    Z, indicator = calculate_error_contours(xpoints, ypoints, H, err_function='wind', wind=wind, sensor_no=sensor_no)
 
-def plot_wind(xrange, yrange, H, wind, sensor_no):
-    Z, indicator = calculate_error_contours(xrange, yrange, H, err_function='wind', wind=wind, sensor_no=sensor_no)
-
-    contour_plot(xrange, yrange, Z, H)
+    contour_plot(xpoints, ypoints, Z, H)
 
 
-def plot_temp(H, temp_deg, xrange, yrange, temp_assume=20):
+def plot_temp(H, temp_deg, xpoints, ypoints, step, temp_assume=20):
     temp = temp_deg + 273.15  # Convert temperature into Kelvin
     temp_assume = temp_assume + 273.15
 
     dc = np.sqrt(1.402 * 8310 * temp / 28.966) - np.sqrt(
         1.402 * 8310 * temp_assume / 28.966)  # Get the difference in speed of sound from assumed
 
-    Z, indicator = calculate_error_contours(xrange, yrange, H, err_function='dc', dc=dc)
+    v_sound = sos(temp_deg, 85)
 
-    contour_plot(xrange, yrange, Z, H)
+    Z, indicator = calculate_error_contours(xpoints, ypoints, step, H, v_sound, err_function='dc', dc=dc)
+
+    contour_plot(xpoints, ypoints, Z, H)
 
 
-def plot_humidity(H, rel_humid, a_xrange, a_yrange, temp_assume=20):
+def plot_humidity(H, rel_humid, a_xpoints, a_ypoints, temp_assume=20):
     temp = temp_assume + 273.15  # Convert temperature into Kelvin
 
     abs_humidity, density = humid(temp_assume, rel_humid)
@@ -38,9 +39,9 @@ def plot_humidity(H, rel_humid, a_xrange, a_yrange, temp_assume=20):
     dc = np.sqrt(spec_heat_ratio * 8310 * temp / molar_mass) - np.sqrt(
         1.402 * 8310 * temp / 28.966)  # Error in speed of sound estimate due to HUMIDITY only, so take the actual speed of sound with this temperature value
 
-    Z, indicator = calculate_error_contours(xrange, yrange, H, err_function='dc', dc=dc)
+    Z, indicator = calculate_error_contours(xpoints, ypoints, H, err_function='dc', dc=dc)
 
-    contour_plot(xrange, yrange, Z, H)
+    contour_plot(xpoints, ypoints, Z, H)
 
 
 def plot_pair_sourceHeight(h1, h2, a_x, a_z):
@@ -122,22 +123,22 @@ def plot_SNR(coeff, db_of_sound_source, dBthreshold=10):
     plt.show()
 
 
-def plot_2D_nominal(xrange, yrange, H, v_sound, sensor_pair=(2, 4)):
+def plot_2D_nominal(xpoints, ypoints, H, v_sound, sensor_pair=(2, 4)):
     pass
 
 
-def plot_sos_time_total(H, DT, dc, v_sound, a_xrange, a_yrange, a, increment=1):
-    a_xmin = 5 - a_xrange / 2
-    a_ymin = 5 - a_yrange / 2
+def plot_sos_time_total(H, DT, dc, v_sound, a_xpoints, a_ypoints, a, increment=1):
+    a_xmin = 5 - a_xpoints / 2
+    a_ymin = 5 - a_ypoints / 2
 
-    i_loop = int(a_xrange / increment)
-    j_loop = int(a_yrange / increment)
+    i_loop = int(a_xpoints / increment)
+    j_loop = int(a_ypoints / increment)
 
     absolute_error_sos = np.zeros((i_loop, j_loop))
     absolute_error_time = np.zeros((i_loop, j_loop))
 
-    x = np.arange(a_xmin, a_xrange + a_xmin, increment)
-    y = np.arange(a_ymin, a_yrange + a_ymin, increment)
+    x = np.arange(a_xmin, a_xpoints + a_xmin, increment)
+    y = np.arange(a_ymin, a_ypoints + a_ymin, increment)
 
     for i in range(i_loop):
         for j in range(j_loop):
@@ -219,27 +220,38 @@ def plot_sos_time_total(H, DT, dc, v_sound, a_xrange, a_yrange, a, increment=1):
     plt.show()
 
 
-def calculate_error_contours(xrange, yrange, H, err_function='dc', dc=0., a=np.zeros((3, 1)), DT=np.zeros((4, 1)),
-                             sensor_no=0, wind=np.zeros((3, 1)), v_sound=0.):
-    xmin = int(H[1][0] / 2 - xrange / 2)
-    ymin = int(H[2][1] / 2 - yrange / 2)
+def calculate_error_contours(xpoints, ypoints, step, H, v_sound, err_function='dc', dc=0., a=np.array([0, 0, 0], dtype=float), DT=np.zeros((4, 1)),
+                             sensor_no=0, wind=np.zeros((3, 1))):
 
-    Z = np.zeros((xrange, yrange))
+    xmin = H[1][0] / 2 - xpoints / 2
+    ymin = H[2][1] / 2 - ypoints / 2
 
-    for i in range(xrange):
-        for j in range(yrange):
-            a[0] = xmin + i
-            a[1] = ymin + j
+    Z = np.zeros((ypoints, xpoints))
+
+    a[2] = 0.01
+
+    for i in range(xpoints):
+        for j in range(ypoints):
+            a[0] = xmin + step*i
+            a[1] = ymin + step*j
 
             if err_function == 'dc':
-                error_matrix = E_sos(a, H, dc)
+                if v_sound == 0.:
+                    print("\nInput speed of sound is 0. Please specify a speed of sound.")
+                    SoS = float(input())
 
-                print(error_matrix)
+                    return calculate_error_contours(xpoints, ypoints, step, H, err_function=err_function, dc=dc, a=a, DT=DT,
+                             sensor_no=sensor_no, wind=wind,v_sound=SoS)
 
-                Z[j][i] = np.sqrt(np.sum(np.square(error_matrix, axis=0)))
+                error_matrix = E_sos(a, H, dc, v_sound)
+
+                Z[j][i] = np.sqrt(np.sum(np.square(error_matrix[:-1])))
+
+                if Z[j][i] == 0:
+                    Z[j][i] = Z[j-1]
 
             elif err_function == 'wind':
-                line2sensor = np.subtract(H, a)
+                line2sensor = H - a
 
                 line2sensor = line2sensor / np.linalg.norm(
                     line2sensor)  # Normalize the line from sound source to sensor
@@ -248,61 +260,54 @@ def calculate_error_contours(xrange, yrange, H, err_function='dc', dc=0., a=np.z
                             line2sensor)  # Dot product of wind and the line2 sensor gives the change in speed of sound
 
                 error_matrix = E_sos(a, H,
-                                     dc)  # Calculate a particular error matrix for that speed of sound, will have to then have an error matrix FOR EACH MICROPHONE
+                                     dc, v_sound)  # Calculate a particular error matrix for that speed of sound, will have to then have an error matrix FOR EACH MICROPHONE
 
-                Z[j][i] = np.sqrt(
-                    np.power(error_matrix[0][0], 2) + np.power(error_matrix[1][0], 2) + np.power(
-                        error_matrix[3][0],
-                        2))
+                Z[j][i] = np.sqrt(np.sum(np.square(error_matrix[:-1])))
 
             elif err_function == '2D':
                 print("\nIn this case the returned array is an array of arrays, with each element of the array being an array of the distance errors between pairs of microphones. \nEach of these sub-arrays SHOULD have 0 along their diagonals, and be (negatively/anti) symmetric")
                 if v_sound == 0.:
-                    # raise Exception("Input speed of sound is 0. Please specify a speed of sound in the function call.")
                     print("\nInput speed of sound is 0. Please specify a speed of sound.")
                     SoS = float(input())
 
-                    return calculate_error_contours(xrange, yrange, H, err_function=err_function, dc=dc, a=a, DT=DT,
+                    return calculate_error_contours(xpoints, ypoints, step, H, err_function=err_function, dc=dc, a=a, DT=DT,
                              sensor_no=sensor_no, wind=wind,v_sound=SoS)
 
-                ToA_actual = np.divide(R(a, H), v_sound)
+                ToA_actual = np.divide(R(a, H, model-"3D"), v_sound)
 
                 Dt_actual = ToA_actual - ToA_actual.T      # Could make this absolute value to get size of error
 
-                print(Dt_actual)
-
                 diff = H[:][:-1] - a[:-1]
-                print(diff)
 
-                h = np.sqrt(np.dot(diff,diff.T))
+                h = np.sqrt(np.sum(np.dot(diff, diff.T)))
 
-                ToA_predicted = np.divide(h,v_sound)
+                ToA_predicted = h / v_sound
 
                 Dt_predicted = ToA_predicted - ToA_predicted.T
 
                 Dt = Dt_actual - Dt_predicted
 
-                Z[j][i] = np.multiply(Dt,v_sound)  # To get the time error into a distance error. This means Z will return as an array of arrays for this particular case
+                Z[j][i] = np.multiply(Dt, v_sound)  # To get the time error into a distance error. This means Z will return as an array of arrays for this particular case
 
             elif err_function == 'SNR':
                 pass
 
             else:
-                raise ...
+                pass
 
     indicator = calculate_error_indicator(Z)
 
     return Z, indicator
 
 
-def contour_plot(xrange, yrange, Z, H, title=None):
+def contour_plot(xpoints, ypoints, Z, H, title=None):
     plt.figure(1)
 
-    a_xmin = 5 - xrange / 2
-    a_ymin = 5 - yrange / 2
+    a_xmin = 5 - xpoints / 2
+    a_ymin = 5 - ypoints / 2
 
-    x = np.arange(a_xmin, xrange + a_xmin, 1)
-    y = np.arange(a_ymin, yrange + a_ymin, 1)
+    x = np.arange(a_xmin, xpoints + a_xmin, 1)
+    y = np.arange(a_ymin, ypoints + a_ymin, 1)
 
     X, Y = np.meshgrid(x, y, indexing = 'xy')
 
@@ -323,6 +328,20 @@ def contour_plot(xrange, yrange, Z, H, title=None):
     plt.ylabel("y (m)", fontsize=16)
 
     plt.show()
-    pass
 
 
+h1 = [0, 0, 0]
+h2 = [0, 10, 0]
+h3 = [10, 10, 0]
+h4 = [10, 0, 0]
+H = np.array([h1, h2, h3, h4], dtype=float)
+
+
+xpoints = 100
+ypoints = 100
+x = np.linspace(-20, 20, xpoints)
+step = 40/100
+
+v_sound = sos(20,85)
+
+plot_temp(H, 20, xpoints, ypoints, step)
