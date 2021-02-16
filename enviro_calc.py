@@ -85,15 +85,15 @@ def dB_at_x_2(coeff, x, A_0):
 
     return A_0 + 20*np.log10(1 / x) - 10 * coeff * x * np.log10(np.e)
 
-A_0 = 85
-coeff = attenuation_coeff(10000, 20, 85)
-x = np.linspace(1, 80, 100)
-y = dB_at_x(coeff, x, A_0)
-plt.figure()
-plt.plot(x,y)
-
-plt.figure()
-y = dB_at_x_2(coeff, x, A_0)
-plt.plot(x, y)
-
-plt.show()
+# A_0 = 85
+# coeff = attenuation_coeff(10000, 20, 85)
+# x = np.linspace(1, 80, 100)
+# y = dB_at_x(coeff, x, A_0)
+# plt.figure()
+# plt.plot(x,y)
+#
+# plt.figure()
+# y = dB_at_x_2(coeff, x, A_0)
+# plt.plot(x, y)
+#
+# plt.show()

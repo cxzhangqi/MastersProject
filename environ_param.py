@@ -6,10 +6,6 @@ import numpy as np
 H = np.array([0,0,0],dtype=float)
 number_points = 200
 range_points = 60
-z = 5
-
-# Set up the microphone position as static
-H = np.array([0, 0, 0])
 
 # Set up x, y and z for positions of a (sound source)
 x = np.linspace(0, range_points, number_points).reshape(-1, 1)
@@ -24,11 +20,11 @@ def distance(a, H):
     """
 
     :param a: 1 x 3 array
-    :param H: i x 3 array for the 1D case
+    :param H: i x 3 array
     :return: 1 x i array of distance values
     """
     z = H - a
-    return np.sqrt(np.sum(np.square(z), axis=1))#.reshape(-1, 1)
+    return np.sqrt(np.sum(np.square(z), axis=1))
 
 
 def error_2D_in_1D(v_sound, height=0):
@@ -43,10 +39,10 @@ def error_2D_in_1D(v_sound, height=0):
     b = np.concatenate((x, y, height), axis=1)
 
     # Calculate ToA for a 3D model, a (number_points x 1) array
-    ToF_3D = distance(a, H) / v_sound
+    ToF_3D = distance(b, H) / v_sound
 
     # ToA for 1D case is just the x distance
-    ToF_2D = a[:, 0] / v_sound
+    ToF_2D = b[:, 0] / v_sound
 
     # Subtract two to obtain error
     ToF_error = ToF_3D - ToF_2D
@@ -71,7 +67,7 @@ def error_SoS_in_1D(dc, v_sound):
     return ToF_error, Distance_error
 
 
-def error_humidty_in_1D(rel_humidity, temp_deg_assumed=20, rel_humidity_assumed=85):
+def error_humidity_in_1D(rel_humidity, temp_deg_assumed=20, rel_humidity_assumed=85):
 
     v_sound_actual = sos(temp_deg_assumed, rel_humidity)
 
@@ -100,7 +96,7 @@ def error_wind_in_1D(wind, temp_deg_assume=20, rel_humidity=85):
 
 
 def plot_variable_1D(variable_list, variable='temperature'):
-    variable_dict = {'temperature': error_temp_in_1D, 'wind': error_wind_in_1D, 'humidity': error_humidty_in_1D}
+    variable_dict = {'temperature': error_temp_in_1D, 'wind': error_wind_in_1D, 'humidity': error_humidity_in_1D}
     label_dict = {'temperature': "\u00b0C", 'wind': "m/s", 'humidity': "% RH"}
 
     fig, (ax1, ax2) = plt.subplots(1, 2)
@@ -122,7 +118,7 @@ def plot_variable_1D(variable_list, variable='temperature'):
 
 temp = [10, 15, 20, 25, 30]
 wind = [-5, -2 - 1, 1, 2, 5, 10]
-humidity = [0, 20, 50, 85]
+humidity = [0, 20, 50, 85, 98]
 z = [0, 1, 2, 5]
 
 # plot_variable_1D(wind, variable='wind')
