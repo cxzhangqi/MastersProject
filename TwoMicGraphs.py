@@ -1,6 +1,5 @@
-from enviro_calc import humid, sos
+from enviro_calc import sos, vector2value
 import matplotlib.pyplot as plt
-from enviro_calc import vector2value
 import numpy as np
 
 # Set up 2 microphone array as static
@@ -201,4 +200,4 @@ wind_vector = np.array([2, 3, 0])
 # plot_variable_2D(wind_vector, parameter='wind')
 # plot_variable_2D(30, parameter='temperature')
 # plot_variable_2D(20, parameter='humidity')
-plot_variable_2D(5, parameter='2D error')
+# plot_variable_2D(5, parameter='2D error')

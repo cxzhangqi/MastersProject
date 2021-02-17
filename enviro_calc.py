@@ -35,22 +35,18 @@ def sos(temp_deg, rel_humid):
 def attenuation_coeff(freq, temp_deg, rel_humid):
     # Convert frequency in Hz to radians
     w = freq * 2 * np.pi
-    print(w)
 
     # Convert temp to Kelvin
     temp_k = temp_deg + 273.15
 
     # Density
     abs_humid, density = humid(temp_deg, rel_humid)
-    print(density)
 
     # Speed of sound
     speed_of_sound = sos(temp_deg, rel_humid)
-    print(speed_of_sound)
 
     # Dynamic viscosity
     dyn_visc = 1.825e-5 * np.power(temp_k / 293.15, 0.7)
-    print(dyn_visc)
     # 0.001792 * np.power(np.e,(-1.94-4.8*273.16/temp_k+6.74*np.power(273.16/temp_k,2)))
 
     # 1.458e-6 * np.power(temp_k,1.5) / (temp_k + 110.4)
@@ -83,7 +79,7 @@ def attenuation_eq(coeff, A_0, x):
     #
     # A = A_0 + A
 
-    y = 20 * np.log10(x) + A_0 * (1 - np.exp(-coeff * x))  # NEED TO CHECK IF THIS IS CORRECT
+    y = - 20 * np.log10(x) + A_0*np.exp(-coeff * x)  # NEED TO CHECK IF THIS IS CORRECT
 
     # x_solve = sympy.symbols('x_solve')
     #
@@ -91,25 +87,35 @@ def attenuation_eq(coeff, A_0, x):
     #
     # zero_crossing = solve(A_0 - 20*np.log10(x_solve) + A_0*(1 - np.power(np.e,-coeff*x_solve/2)),x)
 
-    return A_0 - y  # , zero_crossing[0]
+    return y  # , zero_crossing[0]
 
 def dB_at_x(coeff, x, A_0):
 
-    return 10*np.log10((1 / x**2) * np.exp(-coeff * x))
+    return 10*np.log10((1 / x**2)) - np.exp(-coeff * x)
 
 def dB_at_x_2(coeff, x, A_0):
 
     return A_0 + 20*np.log10(1 / x) - 10 * coeff * x * np.log10(np.e)
 
-# A_0 = 85
-# coeff = attenuation_coeff(10000, 20, 85)
-# x = np.linspace(1, 80, 100)
-# y = dB_at_x(coeff, x, A_0)
-# plt.figure()
-# plt.plot(x,y)
-#
-# plt.figure()
-# y = dB_at_x_2(coeff, x, A_0)
-# plt.plot(x, y)
-#
-# plt.show()
+def dB_at_x_3(coeff, x, A_0):
+
+    return A_0 - 10 * coeff * x * np.log10(np.e) - 20*np.log10(x)
+
+A_0 = 85
+freq = 5e3  #Hz
+temp_deg = 20
+rel_humidity = 85 #%
+x = np.linspace(1, 80, 100)
+y = dB_at_x(attenuation_coeff(freq, temp_deg, rel_humidity), x, A_0)
+plt.figure()
+plt.plot(x, y)
+
+plt.figure()
+y = dB_at_x_3(attenuation_coeff(freq, temp_deg, rel_humidity), x, A_0)
+plt.plot(x, y)
+
+plt.figure()
+y = attenuation_eq(attenuation_coeff(freq, temp_deg, rel_humidity), A_0, x)
+plt.plot(x, y)
+
+plt.show()

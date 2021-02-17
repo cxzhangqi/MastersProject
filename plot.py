@@ -1,7 +1,7 @@
 import numpy as np
 
 from error_model import R, E_sos
-from environ_param import humid, sos
+from OneMicGraphs import humid, sos
 
 import matplotlib.pyplot as plt
 

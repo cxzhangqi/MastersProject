@@ -692,7 +692,7 @@ def attenuation_eq(coeff, A_0, x):
     #
     # A = A_0 + A
 
-    y = 20*np.log10(x) + A_0*(1 - np.power(np.e,-coeff*x/2))     # NEED TO CHECK IF THIS IS CORRECT
+    y = 20*np.log10(x) + A_0*(1 - np.power(np.e,-coeff*x))     # NEED TO CHECK IF THIS IS CORRECT
 
     # x_solve = sympy.symbols('x_solve')
     #
@@ -703,7 +703,7 @@ def attenuation_eq(coeff, A_0, x):
     return A_0 - y#, zero_crossing[0]
 
 
-def plot_SNR(coeff,db_of_sound_source,dBthreshold=10):
+def plot_SNR(coeff,db_of_sound_source, dBthreshold=10):
     ymin = 0
     xmax = 50
 
@@ -745,9 +745,9 @@ def plot_SNR(coeff,db_of_sound_source,dBthreshold=10):
 
 #plot_sos_time_total(H,DT,dc,v_sound,a_xrange,a_yrange)
 
-plot_wind_mic2_4(H,dir_wind,v_wind,a_xrange,a_yrange)
+#plot_wind_mic2_4(H,dir_wind,v_wind,a_xrange,a_yrange)
 
-plot_temp(H,temp_deg,a_xrange,a_yrange)
+#plot_temp(H,temp_deg,a_xrange,a_yrange)
 #
 # plot_humid(H,temp_deg,rel_humid,a_xrange,a_yrange)
 #
@@ -755,4 +755,4 @@ plot_temp(H,temp_deg,a_xrange,a_yrange)
 #
 # plot_pair_sourceHeight(h2d,h4d,10,1)
 
-#plot_SNR(coeff,db_of_sound_source)
+plot_SNR(coeff,db_of_sound_source)
