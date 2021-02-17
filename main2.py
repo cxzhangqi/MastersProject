@@ -80,7 +80,7 @@ def R(i, a_x, a_y, a_z, H):
     :param H:
     :return:
     """
-    return np.sqrt(np.power((H[i][0] - a_x), 2) + np.power((H[i][1] - a_y), 2) + np.power((H[i][2] - a_z), 2))
+    return np.sqrt(np.power((H[i, 0] - a_x), 2) + np.power((H[i, 1] - a_y), 2) + np.power((H[i, 2] - a_z), 2))
 
 
 def m(i, j, a_x, a_y, a_z, H):
@@ -745,9 +745,9 @@ def plot_SNR(coeff,db_of_sound_source,dBthreshold=10):
 
 #plot_sos_time_total(H,DT,dc,v_sound,a_xrange,a_yrange)
 
-# plot_wind_mic2_4(H,dir_wind,v_wind,a_xrange,a_yrange)
+plot_wind_mic2_4(H,dir_wind,v_wind,a_xrange,a_yrange)
 
-# plot_temp(H,temp_deg,a_xrange,a_yrange)
+plot_temp(H,temp_deg,a_xrange,a_yrange)
 #
 # plot_humid(H,temp_deg,rel_humid,a_xrange,a_yrange)
 #
@@ -755,18 +755,4 @@ def plot_SNR(coeff,db_of_sound_source,dBthreshold=10):
 #
 # plot_pair_sourceHeight(h2d,h4d,10,1)
 
-plot_SNR(coeff,db_of_sound_source)
-
-h1 = [0, 0, 0]
-h2 = [0, 10, 0]
-h3 = [10, 10, 0]
-h4 = [10, 0, 0]
-
-H = np.array([h1, h2, h3, h4])
-
-x = np.linspace(-20,20,100)
-y = np.linspace(-20,20,100)
-
-a = np.array([x, y, 0])
-
-Z = E_sos(x, y, 0, H, dc)
+#plot_SNR(coeff,db_of_sound_source)

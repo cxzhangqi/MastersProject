@@ -27,7 +27,7 @@ def distance(a, H):
     return np.sqrt(np.sum(np.square(z), axis=1))
 
 
-def error_2D_in_1D(v_sound, height=0):
+def error_2D(v_sound, height=0):
     """
     Calculates and plots the error in ToA to a microphone as a function of vertical height error, z
     :param v_sound:
@@ -54,7 +54,7 @@ def error_2D_in_1D(v_sound, height=0):
 # Next error in temperature differences. Easy way to do this is I think is to have a standard method for calculating change in speed of sound
 # Can I do this with only 1 microphone --> don't think so, need two
 
-def error_SoS_in_1D(dc, v_sound):
+def error_SoS(dc, v_sound):
 
     ToF_predicted = distance(a, H) / v_sound
 
@@ -67,7 +67,7 @@ def error_SoS_in_1D(dc, v_sound):
     return ToF_error, Distance_error
 
 
-def error_humidity_in_1D(rel_humidity, temp_deg_assumed=20, rel_humidity_assumed=85):
+def error_humidity(rel_humidity, temp_deg_assumed=20, rel_humidity_assumed=85):
 
     v_sound_actual = sos(temp_deg_assumed, rel_humidity)
 
@@ -75,28 +75,28 @@ def error_humidity_in_1D(rel_humidity, temp_deg_assumed=20, rel_humidity_assumed
 
     dc = v_sound_actual - v_sound_predicted
 
-    return error_SoS_in_1D(dc, v_sound_predicted)
+    return error_SoS(dc, v_sound_predicted)
 
 
-def error_temp_in_1D(temp_deg, temp_deg_assumed=20, rel_humidity=85):
+def error_temp(temp_deg, temp_deg_assumed=20, rel_humidity=85):
     v_sound_actual = sos(temp_deg, rel_humidity)
 
     v_sound_predicted = sos(temp_deg_assumed, rel_humidity)
 
     dc = v_sound_actual - v_sound_predicted
 
-    return error_SoS_in_1D(dc, v_sound_predicted)
+    return error_SoS(dc, v_sound_predicted)
 
 
-def error_wind_in_1D(wind, temp_deg_assume=20, rel_humidity=85):
+def error_wind(wind, temp_deg_assume=20, rel_humidity=85):
 
     v_sound_predicted = sos(temp_deg_assume, rel_humidity)
 
-    return error_SoS_in_1D(wind, v_sound_predicted)
+    return error_SoS(wind, v_sound_predicted)
 
 
-def plot_variable_1D(variable_list, variable='temperature'):
-    variable_dict = {'temperature': error_temp_in_1D, 'wind': error_wind_in_1D, 'humidity': error_humidity_in_1D}
+def plot_variable(variable_list, variable='temperature'):
+    variable_dict = {'temperature': error_temp, 'wind': error_wind, 'humidity': error_humidity}
     label_dict = {'temperature': "\u00b0C", 'wind': "m/s", 'humidity': "% RH"}
 
     fig, (ax1, ax2) = plt.subplots(1, 2)
@@ -121,9 +121,9 @@ wind = [-5, -2 - 1, 1, 2, 5, 10]
 humidity = [0, 20, 50, 85, 98]
 z = [0, 1, 2, 5]
 
-# plot_variable_1D(wind, variable='wind')
-# plot_variable_1D(temp, variable='temperature')
-# plot_variable_1D(humidity, variable='humidity')
+# plot_variable(wind, variable='wind')
+# plot_variable(temp, variable='temperature')
+# plot_variable(humidity, variable='humidity')
 
 # Things affecting SNR
 """

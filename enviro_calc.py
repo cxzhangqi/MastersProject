@@ -59,6 +59,22 @@ def attenuation_coeff(freq, temp_deg, rel_humid):
 
     return coeff  # Use the Stokes equation to calculate the attenuation coefficient
 
+def vector2value(wind_vector, a, H):
+    """
+
+    :param wind_vector: 1 x 3 array of wind vector
+    :param a: n x 3 sound source location
+    :param H: i x 3 microphone positions
+    :return: n x i array of wind values
+    """
+    wind = np.zeros((a.shape[0], H.shape[0]))
+
+    for i in range(H.shape[0]):
+        line2sensor = H[i] - a
+        line2sensor = line2sensor / np.linalg.norm(line2sensor, axis=1).reshape(-1, 1)
+        wind[:, i] = np.dot(line2sensor, wind_vector)
+
+    return wind
 
 def attenuation_eq(coeff, A_0, x):
     # A = A_0/np.power(x,2)*np.power(np.e,-coeff*x/2)
