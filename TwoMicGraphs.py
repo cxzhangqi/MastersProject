@@ -71,7 +71,7 @@ def error_SoS_1D(dc, v_sound_assumed, a=np.concatenate((np.linspace(0, range_poi
     return TDoA, diff_distance_error
 
 def plot_variable_1D(variable_list, parameter='temperature'):
-    variable_dict = {'temperature': error_temp_1D, 'wind': error_wind_1D, 'humidity': error_humidity_1D, '2D error': error_2D_1D}
+    variable_dict = {'temperature': error_temp_1D, 'wind': error_wind_2D, 'humidity': error_humidity_1D, '2D error': error_2D_1D}
     label_dict = {'temperature': "\u00b0C", 'wind': "m/s", 'humidity': "% RH", '2D error': 'm'}
 
     x = np.linspace(0, range_points, number_points).reshape(-1, 1)
@@ -79,7 +79,7 @@ def plot_variable_1D(variable_list, parameter='temperature'):
     fig, (ax1, ax2) = plt.subplots(1, 2)
 
     for item in variable_list:
-        TDoA, Distance_error = variable_dict[parameter](item)
+        TDoA, Distance_error = variable_dict[parameter](item, a=np.concatenate((np.linspace(0, range_points, number_points).reshape(-1, 1),np.zeros((number_points,1)),np.zeros((number_points,1))), axis=1))
         ax1.plot(x, TDoA, label="%s %s" % (item, label_dict[parameter]))
         ax2.plot(x, Distance_error, label="%s %s" % (item, label_dict[parameter]))
 
@@ -186,13 +186,13 @@ def error_wind_2D(wind_vector, a, temp_deg_assume=20, rel_humidity=85):
     return error_SoS_1D(wind, v_sound_assumed, a=a, wind=True)
 
 temp = [10., 15., 20., 25., 30.]
-wind = [-5., -2. - 1., 1., 2., 5., 10.]
+wind = [np.array([-5.,0., 0.]), np.array([-2., 0., 0.]), np.array([2., 0, 0]), np.array([-1., 0., 0.]), np.array([10., 0., 0.])]
 humidity = [0., 20., 50., 85., 98.]
 z = [0., 1., 2., 5.]
 
 # plot_variable_1D(humidity, parameter='humidity')
 # plot_variable_1D(temp, parameter='temperature')
-# plot_variable_1D(wind, parameter='wind')
+plot_variable_1D(wind, parameter='wind')
 #plot_variable_1D(z, parameter='2D error')
 
 wind_vector = np.array([2, 3, 0])
@@ -201,3 +201,8 @@ wind_vector = np.array([2, 3, 0])
 # plot_variable_2D(30, parameter='temperature')
 # plot_variable_2D(20, parameter='humidity')
 # plot_variable_2D(5, parameter='2D error')
+
+microphone_positions = [0., 10., 20., 30.]
+# for position in microphone_positions:
+#     H[0,0] = position
+#     plot_variable_1D(temp, parameter='temperature')
