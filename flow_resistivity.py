@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.special import erfc
-from enviro_calc import sos, sos_old, humid
+from enviro_calc import sos, humid
 import matplotlib.pyplot as plt
 
 """ This file implements the equations found in Embleton 1983, Effective flow resisitivity of ground surfaces
@@ -14,14 +14,14 @@ temp = 20
 RH = 80
 
 # Properties of air
-c_air = sos_old(temp, RH)
+c_air = sos(temp, RH)
 _, _, density_air = humid(temp, RH)
 
 # Characteristic acoustic impedance
 Z_0 = density_air * c_air # kg/m/m/s
 
 def calculate_reflection(source_position, receiver_position):
-    """Calculates reflected distance from receiver to ground and reflection angle"""
+    """Calculates reflected distance, r2, from receiver to ground and reflection angle"""
 
     # The horizontal distance between them
     b = np.linalg.norm(source_position[:-1] - receiver_position[:-1])
@@ -97,7 +97,7 @@ def wave_number(frequency, eff_flow_resistivity, k1):
 def pressure_at_receiver(frequency, eff_flow_resistivity, source_position, receiver_position, temp = 0, RH = 0):
 
     _, _, density_air = humid(temp, RH)
-    c_air = sos_old(temp, RH)
+    c_air = sos(temp, RH)
     print(density_air, c_air)
 
     # Get impedances for air (1) and ground (2)
@@ -133,31 +133,31 @@ def pressure_at_receiver(frequency, eff_flow_resistivity, source_position, recei
 
     return first_term + second_term + third_term
 
-# Point source of sound in 3D
-a = np.array([0, 0, 0.31], dtype=np.float64)
-
-# Arbitrary separation in x and y
-x_separation = 15.2
-y_separation = 0
-
-# Receiver position
-m = np.array([x_separation, y_separation, 1.22], dtype=np.float64)
-
-# Distance from source to receiver
-r1 = np.linalg.norm(a - m)
-
-# Distance from source to receiver via ground
-r2, reflection_angle = calculate_reflection(a, m)
-
-sigma = 10
-frequency = np.arange(100, 10e3, 1)
-#y = pressure_at_receiver(frequency, sigma, a, m)
-logy = 10*np.log10(pressure_at_receiver(frequency, sigma, a, m))
-
-plt.figure(1)
-plt.plot(frequency, logy.real)
-plt.xscale("log")
-plt.show()
+# # Point source of sound in 3D
+# a = np.array([0, 0, 0.31], dtype=np.float64)
+#
+# # Arbitrary separation in x and y
+# x_separation = 15.2
+# y_separation = 0
+#
+# # Receiver position
+# m = np.array([x_separation, y_separation, 1.22], dtype=np.float64)
+#
+# # Distance from source to receiver
+# r1 = np.linalg.norm(a - m)
+#
+# # Distance from source to receiver via ground
+# r2, reflection_angle = calculate_reflection(a, m)
+#
+# sigma = 10
+# frequency = np.arange(100, 10e3, 1)
+# #y = pressure_at_receiver(frequency, sigma, a, m)
+# logy = 10*np.log10(pressure_at_receiver(frequency, sigma, a, m))
+#
+# plt.figure(1)
+# plt.plot(frequency, logy.real)
+# plt.xscale("log")
+# plt.show()
 
 # x = np.linspace(-4,60,100)
 # y = erfc(x)

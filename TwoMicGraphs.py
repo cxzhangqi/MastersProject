@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Set up 2 microphone array as static
-H = np.array([[20, 0, 0], [40, 0, 0]], dtype=float)
+H = np.array([[10,0, 0], [10, 0, 0]], dtype=float)
 number_points = 200
-range_points = 60
+range_points = 30
 
 def distance_multimic(a, H):
     """
@@ -74,19 +74,21 @@ def plot_variable_1D(variable_list, parameter='temperature'):
     variable_dict = {'temperature': error_temp_1D, 'wind': error_wind_2D, 'humidity': error_humidity_1D, '2D error': error_2D_1D}
     label_dict = {'temperature': "\u00b0C", 'wind': "m/s", 'humidity': "% RH", '2D error': 'm'}
 
-    x = np.linspace(0, range_points, number_points).reshape(-1, 1)
+    x = np.linspace(-range_points, range_points, number_points).reshape(-1, 1)
 
     fig, (ax1, ax2) = plt.subplots(1, 2)
 
     for item in variable_list:
-        TDoA, Distance_error = variable_dict[parameter](item, a=np.concatenate((np.linspace(0, range_points, number_points).reshape(-1, 1),np.zeros((number_points,1)),np.zeros((number_points,1))), axis=1))
-        ax1.plot(x, TDoA, label="%s %s" % (item, label_dict[parameter]))
-        ax2.plot(x, Distance_error, label="%s %s" % (item, label_dict[parameter]))
+        TDoA, Distance_error = variable_dict[parameter](item, a=np.concatenate((x,np.zeros((number_points,1)),np.zeros((number_points,1))), axis=1))
+        Distance_error = Distance_error / np.linalg.norm(H[0] - H[1]) * 100 # Tp get error as a percentage of baseline length
+        ax1.plot(x, TDoA, label="∆ %s %s" % (int(item - 20), label_dict[parameter]))
+        ax2.plot(x, Distance_error, label="∆ %s %s" % (int(item - 20), label_dict[parameter]))
 
 
     ax1.set_xlabel("x (m)", fontsize=16)
-    ax1.set_ylabel("TDoA (s)", fontsize=16)
-    ax2.set_ylabel("error (m)", fontsize=16)
+    ax1.set_ylabel("TDoA error (s)", fontsize=16)
+    ax2.set_ylabel("Percentage of baseline error (%)", fontsize=16)
+    ax2.set_xlabel("x (m)", fontsize=16)
 
     # Plot on microphones
     ax1.plot(H[0,0],H[0,1], 'ro', label="Microphone 1")
@@ -94,7 +96,7 @@ def plot_variable_1D(variable_list, parameter='temperature'):
     ax2.plot(H[0, 0], H[0, 1], 'ro')
     ax2.plot(H[1, 0], H[1, 1], 'rx')
 
-    fig.suptitle("%s for 20\u00b0C and 85%s RH assumed" % (parameter, '%'))
+    #fig.suptitle("%s for 20\u00b0C and 85%s RH assumed" % (parameter, '%'))
 
     ax1.legend()
 
@@ -104,8 +106,8 @@ def plot_variable_2D(variable, parameter='temperature'):
     variable_dict = {'temperature': error_temp_1D, 'wind': error_wind_2D, 'humidity': error_humidity_1D, '2D error': error_2D_1D}
     label_dict = {'temperature': "\u00b0C", 'wind': "m/s", 'humidity': "% RH", '2D error': 'm'}
 
-    x = np.linspace(0, range_points, number_points)
-    y = np.linspace(-20, 20, number_points)
+    x = np.linspace(-range_points, range_points, number_points)
+    y = np.linspace(-range_points, range_points, number_points)
 
     # Set up a 2D meshgrid with x and y points
     X, Y = np.meshgrid(x, y, indexing='xy')
@@ -123,7 +125,7 @@ def plot_variable_2D(variable, parameter='temperature'):
 
     # Reshape to the original meshgrid size (number_points x number_points)
     TDoA = TDoA.reshape(number_points, -1)
-    Distance_error = Distance_error.reshape(number_points, -1)
+    Distance_error = Distance_error.reshape(number_points, -1) / np.linalg.norm(H[0] - H[1]) * 100
 
     contours_ax1 = ax1.contourf(X, Y, TDoA)
     contours_ax2 = ax2.contourf(X, Y, Distance_error)
@@ -135,6 +137,7 @@ def plot_variable_2D(variable, parameter='temperature'):
     #ax2.clabel(contours_ax2, inline=True, fontsize=16, fmt='%1.6f')
 
     ax1.set_xlabel("x (m)", fontsize=16)
+    ax2.set_xlabel("x (m)", fontsize=16)
     ax1.set_ylabel("y (m)", fontsize=16)
 
     # Plot on microphones
@@ -143,9 +146,9 @@ def plot_variable_2D(variable, parameter='temperature'):
     ax2.plot(H[0, 0], H[0, 1], 'ro')
     ax2.plot(H[1, 0], H[1, 1], 'rx')
 
-    fig.suptitle("%s %s %s for 20\u00b0C and 85%s RH assumed" % (str(variable), label_dict[parameter], parameter, '%'))
-    ax1.set_title("TDOA")
-    ax2.set_title("Error (m)")
+    #fig.suptitle("%s %s %s for 20\u00b0C and 85%s RH assumed" % (str(variable), label_dict[parameter], parameter, '%'))
+    ax1.set_title("TDOA error")
+    ax2.set_title("Percentage baseline error (%)")
 
     plt.show()
 
@@ -192,17 +195,17 @@ z = [0., 1., 2., 5.]
 
 # plot_variable_1D(humidity, parameter='humidity')
 # plot_variable_1D(temp, parameter='temperature')
-plot_variable_1D(wind, parameter='wind')
-#plot_variable_1D(z, parameter='2D error')
+# plot_variable_1D(wind, parameter='wind')
+# plot_variable_1D(z, parameter='2D error')
 
-wind_vector = np.array([2, 3, 0])
+wind_vector = np.array([2, 4, 0])
 
 # plot_variable_2D(wind_vector, parameter='wind')
 # plot_variable_2D(30, parameter='temperature')
 # plot_variable_2D(20, parameter='humidity')
 # plot_variable_2D(5, parameter='2D error')
 
-microphone_positions = [0., 10., 20., 30.]
+# microphone_positions = [0., 10., 20., 30.]
 # for position in microphone_positions:
 #     H[0,0] = position
 #     plot_variable_1D(temp, parameter='temperature')

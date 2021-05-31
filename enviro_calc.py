@@ -21,7 +21,7 @@ def humid(temp_deg, rel_humid):
     return abs_humidity_frac, abs_humidity_percent, density_humid
 
 
-def sos(temp_deg, RH, pressure=np.array([1.01325e5]), ppm_conc_co2=400):
+def sos_to_redo(temp_deg, RH, pressure=np.array([1.01325e5]), ppm_conc_co2=400):
     """Using the 1993 ISO standard it calcualtes the speed of sound in air given the molar fraction of CO_2, temperature
      in degrees, relative humidity and pressure. Inputs can be vectors"""
 
@@ -32,10 +32,13 @@ def sos(temp_deg, RH, pressure=np.array([1.01325e5]), ppm_conc_co2=400):
     molar_conc_co2 = np.array(ppm_conc_co2, dtype=np.float64) / 1e6
 
     # First calculate the molar fraction of water vapor in air based on RH
+
+    """For now we ignore this and just use sos from below."""
+
     pass
 
 
-def sos_old(temp_deg, rel_humid):
+def sos(temp_deg, rel_humid):
     """ Returns the speed of sound for a given temperature and relative humidity."""
     temp_k = temp_deg + 273.15
 
@@ -50,6 +53,34 @@ def sos_old(temp_deg, rel_humid):
     sos = np.sqrt(spec_heat_ratio * 8310 * temp_k / molar_mass)
 
     return sos
+
+temp_deg = np.linspace(-5,35,200)
+
+# plt.figure()
+# plt.grid(True)
+# plt.axhline(y=0, color='k')
+# plt.axvline(x=0, color='k')
+# y = (sos(temp_deg, 0) - sos(15,0)) / sos(15,0) * 100
+# plt.plot(temp_deg,y)
+# plt.xlabel("Temperature (°C)",fontsize=16)
+# plt.ylabel("Change in speed of sound (%)",fontsize=16)
+#
+#
+# temp_deg = [0, 10, 20, 30]
+# rel_humid = np.linspace(0,100,200)
+# plt.figure()
+# plt.grid(True)
+# plt.axhline(y=0,color='k')
+# plt.axvline(x=0, color='k')
+# plt.xlabel("Relative humidity (%)",fontsize=16)
+# plt.ylabel("Change in speed of sound (%)",fontsize=16)
+# for temp in temp_deg:
+#     temp = temp * np.ones_like(rel_humid)
+#     y = (sos(temp, rel_humid) - sos(temp, 0)) / sos(temp, 0) * 100
+#     label = str(int(temp[0])) + "°C"
+#     plt.plot(rel_humid, y, label=label)
+# plt.legend()
+
 
 
 def saturation_pressure_water(temp_deg):
@@ -119,6 +150,14 @@ def attenuation_coefficient_dBperm(freq, temp_deg, RH, pressure=np.array([1.0132
 
     return alpha
 
+def vegetation_dBperm(frequency, type="Forest"):
+
+    if type == "Forest":
+        return 0.01 * frequency ** (1 / 3)
+    elif type == "Shrubs":  # type must be shrubs
+        return (0.18 * np.log10(frequency) - 0.31)
+    else:
+        print("Invalid vegetation type given")
 
 def attenuation_coeff(freq, temp_deg, rel_humid):
     """Code is meant to return the attenuation coefficient using the Stokes equation, it is completely wrong."""
@@ -164,7 +203,7 @@ def vector2value(wind_vector, a, H):
     return wind
 
 
-def dbAttenDivergence(x, A_0): return A_0 - 20 * np.log10(x)
+def dbAttenDivergence(x): return 20 * np.log10(x)
 
 
 """ Attenuation functions"""
@@ -186,13 +225,29 @@ def attenuation_divergence_at_r(A_0, r):
 
     return A_0 - 20 * np.log10(np.linalg.norm(r))
 
+def ground_effect_dB(r,h):
+    """The following is taken from Noise and Vibration Control Engineering page 127. Eq 5.7 could have
+    been used. I used equations 5.9 coupled with 5.10. Only really valid for receiver distances less than 200m"""
 
-def attenuation_ground_at_r(A_0, r):
+    h_av = (h[0][2] + r[0][2]) / 2
+
+    d = np.linalg.norm(r - h, axis=1)
+
+    G = np.clip(0.75 * (1 - h_av / 12.5), 0, 0.66)
+
+    return np.clip(10 * G * np.log10(d / 15), 0, np.inf)
+
+
+
+def attenuation_ground_at_r(A_0, r, h):
     """"Calculates the attenuation due to ground effects at a relative distance vector r from the source with strength A_0 dB"""
 
     # I think I'd like to do this using data rather than equations
+    # The following is from Noise and Vibration Control Engineering page 127
+
     pass
 
+    #return A_0 -
 
 def attenuation_turbulence_at_r(A_0, r):
     """Calculates the attenuation due to turbulence effects at a relative distance vector r from the source with source strength A_0 dB"""
@@ -205,13 +260,13 @@ def attenuation_vegetation_at_r(A_0, r, frequency, type="Forest"):
     """"Calculates the attenuation due to vegetation effects at a relative distance vector r from the source with strength A_0 dB
     Equations obtained from """
 
-    data_dict = {"Forest": 20} # Etc
+    data_dict = {"Forest": 20}  # Etc
 
     # There are some rough approximations
     if type == "Forest":
-        return A_0 - 0.01 * frequency**(1/3) * r
-    elif type == "Shrubs": # type must be shrubs
-        return A_0 - (0.18*np.log10(frequency) - 0.31) * r
+        return A_0 - 0.01 * frequency ** (1 / 3) * r
+    elif type == "Shrubs":  # type must be shrubs
+        return A_0 - (0.18 * np.log10(frequency) - 0.31) * r
     elif type == None:
         return A_0
     else:
@@ -291,8 +346,11 @@ def plot_attenuation_coefficient(tertiary_parameter, pressure=np.array([1.01325e
     freq_values = 0
     RH_values = 0
 
-    axis_limits = {'Temperature': np.arange(-10, 40, 0.2), 'Frequency': np.arange(500, 10e3, 50),
+    axis_limits = {'Temperature': np.arange(-10, 40, 0.2), 'Frequency': np.arange(200, 11e3, 50),
                    'RH': np.arange(0, 100, 0.2)}
+
+    axis_labels = {'Temperature': '°C', 'Frequency': 'kHz', 'RH': '%'}
+
     values = {'Temperature': temp_deg_values, 'Frequency': freq_values, 'RH': RH_values}
 
     # Obtain X and Y in the meshgrid from our chosen axes
@@ -307,11 +365,10 @@ def plot_attenuation_coefficient(tertiary_parameter, pressure=np.array([1.01325e
         Z = attenuation_coefficient_dBperm(values["Frequency"][0], values["Temperature"], values['RH'],
                                            pressure=pressure)
         contours1 = ax1.contourf(values[x_axis], values[y_axis], Z)
-        fig.colorbar(contours1)
         Z = attenuation_coefficient_dBperm(values["Frequency"][1], values["Temperature"], values['RH'],
                                            pressure=pressure)
-        contours2 = ax2.contourf(values[x_axis], values[y_axis], Z, levels=contours1.levels)
-        fig.colorbar(contours2)
+        ax2.contourf(values[x_axis], values[y_axis], Z, levels=contours1.levels)
+        fig.colorbar(contours1)
 
 
     elif tertiary == 'Temperature':
@@ -332,19 +389,21 @@ def plot_attenuation_coefficient(tertiary_parameter, pressure=np.array([1.01325e
                                            pressure=pressure)
         contours2 = ax2.contourf(values[x_axis], values[y_axis], Z, levels=contours1.levels)
 
-    ax1.set_title("{} {}".format(tertiary, values[tertiary][0]))
+    ax1.set_title("{} {} {}".format(tertiary, values[tertiary][0], axis_labels[tertiary]))
 
-    ax2.set_title("{} {}".format(tertiary, values[tertiary][1]))
-   # ax2.colorbar(contours2)
-    # ax1.set_xlabel("{}".format(x_axis))
-    plt.xlabel(x_axis, position=(0, 0))
-    ax1.set_ylabel(y_axis)
+    ax2.set_title("{} {} {}".format(tertiary, values[tertiary][1], axis_labels[tertiary]))
+    # ax2.colorbar(contours2)
+    ax1.set_xlabel("{} {}".format(x_axis, axis_labels[x_axis]))
+    ax2.set_xlabel("{} {}".format(x_axis, axis_labels[x_axis]))
+    ax1.set_ylabel("{} {}".format(y_axis, axis_labels[y_axis]))
     plt.show()
 
 
 def fix_parameter(parameter_to_fix='Temperature'):
-    axis_limits = {'Temperature': np.arange(-10, 40, 0.5), 'Frequency': np.arange(500, 10e3, 100),
+    axis_limits = {'Temperature': np.arange(-10, 40, 0.25), 'Frequency': np.arange(200, 11e3, 50),
                    'RH': np.arange(0, 100, 0.5)}
+
+    axis_labels = {'Temperature': '°C', 'Frequency':'kHz','RH':'%'}
 
     ymax_values = []
     ymin_values = []
@@ -379,19 +438,144 @@ def fix_parameter(parameter_to_fix='Temperature'):
     plt.fill_between(axis_limits[parameter_to_fix], ymin_values, ymax_values)
 
     plt.title("Potential variation in atmospheric absorption for known {}".format(parameter_to_fix))
-    plt.xlabel(parameter_to_fix)
+    plt.xlabel("{} {}".format(parameter_to_fix, axis_labels[parameter_to_fix]))
     plt.ylabel("Atmospheric absorption (dB/m)")
     plt.show()
 
-# fix_parameter("Temperature")
-# fix_parameter("Frequency")
-# fix_parameter("RH")
+
+def max_min_absorption(freq, temp_deg, RH):
+    max_absorption = -np.inf
+    min_absorption = np.inf
+
+    max_humidity = -np.inf
+    max_temperature = -np.inf
+    min_humidity = np.inf
+    min_temperature = np.inf
+
+    for temperature in temp_deg:
+        for humidity in RH:
+            coeff = attenuation_coefficient_dBperm(freq, temperature, humidity)
+
+            if coeff > max_absorption:
+                max_absorption = coeff
+                max_humidity = humidity
+                max_temperature = temperature
+
+            if coeff < min_absorption:
+                min_absorption = coeff
+                min_humidity = humidity
+                min_temperature = temperature
+
+    return float(max_absorption), float(min_absorption), [max_temperature, min_temperature], [max_humidity, min_humidity]
+
+def calculate_reflection(source_position, receiver_position):
+    """Calculates reflected distance, r2, from receiver to ground and reflection angle"""
+
+    source_position = np.array(source_position, dtype=np.float64)
+    receiver_position = np.array(receiver_position, dtype=np.float64)
+
+    # The horizontal distance between them
+    b = np.linalg.norm(source_position[:-1] - receiver_position[:-1])
+
+    # Ratio of z1 and z2 for similar triangles
+    ratio = source_position[-1] / receiver_position[-1]
+
+    # Second right angle triangle hypotenuse
+    hypot_2 = np.sqrt(b ** 2 / (1 + ratio) ** 2 + receiver_position[-1] ** 2)
+
+    # First hypotenuse from similar triangles
+    hypot_1 = hypot_2 * ratio
+
+    # Total distance is the sum of the two
+    r2 = hypot_1 + hypot_2
+
+    # Now we also will want the reflection angle
+    reflection_angle = np.arcsin(receiver_position[-1] / hypot_2)
+
+    return r2, reflection_angle
+
+def catenary_curve(sos_gradient, source_position, receiver_position):
+
+    _, reflection_angle = calculate_reflection(source_position, receiver_position)
+
+    return 1 / (sos_gradient * np.cos(reflection_angle))
+
+def sos_gradient(temp_grad, wind_grad):
+    """ DT is the difference in temperature between 10m and 0.5m (T(10) - T(0.5))
+    Du is the wind speed difference at these two heights. This equation obtained from Noise and Vibration
+    Control Engineering page 12 of my shortened copy."""
+
+    T = lambda temp_grad, height: temp_grad * height
+
+    W = lambda wind_grad, height: wind_grad * height
+
+    return 10e-3 / 3.2 * (0.6 * (T(temp_grad, 10) - T(temp_grad, 0.5)) / 1 + (W(temp_grad, 10) - W(wind_grad, 0.5)) / 1)
+
+def shadow_zone_distance():
+    pass
+
+def expected_SNR_values(frequency_range, temperature_range, humidity_range, receiver_height, type="Forest"):
+
+    vegetation = -np.inf
+
+    for freq in frequency_range:
+        # Obtain values in dB/m for each component that affects SNR
+        vegetation = max(vegetation_dBperm(freq, type=type), vegetation)
+        for temperature in temperature_range:
+            for humidity in humidity_range:
+
+                pass
+
+
+    absorption = max_min_absorption(frequency_range, temperature_range, humidity_range)
+
+    plt.figure()
+    plt.title("Ground effect attenuation as a function of distance ")
+    plt.xlabel("Distance from source (m)")
+    plt.ylabel("Attenuation (dB)")
+    x = np.linspace(0, 100, 200).reshape(-1,1)
+    r = np.array([[0, 0, 0]])
+    h = np.concatenate((x, np.array([0, receiver_height]) * np.ones_like(x)), axis=1)
+    y = ground_effect_dB(r, h)
+    plt.plot(x, y)
+    plt.show()
+
+    print("Maximum air absorption: \t\t\t\t", round(absorption[0],4), "dB/m")
+    print("Occuring at temperature:\t\t\t\t", absorption[2][0], "degrees celsius")
+    print("Occuring at humidity:\t\t\t\t", absorption[3][0], "% RH")
+    print("Minimum air absorption: \t\t\t\t", round(absorption[1],4), "dB/m")
+    print("Occuring at temperature\t\t\t\t", absorption[2][1], "degrees celsius")
+    print("Occuring at humidity:\t\t\t\t", absorption[3][1], "% RH")
+    print("Approximate vegetation absorption: \t\t", round(vegetation,4), "dB/m")
+    print("Approximate ground effect at 15m: \t\t", round(float(ground_effect_dB(r, np.array([[15.,0.,receiver_height]]))),4),"dB")
+    print("Approximate ground effect at 30m: \t\t", round(float(ground_effect_dB(r, np.array([[30.,0.,receiver_height]]))),4), "dB")
+    print("Attenuation due to divergence at 10m: \t", round(dbAttenDivergence(10),4), "dB")
+    print("Attenuation due to divergence at 30m: \t", round(dbAttenDivergence(30),4), "dB")
+    print("Attenuation due to divergence at 50m: \t", round(dbAttenDivergence(50),4), "dB")
+    print("\nTotal attenuation is the sum of these effects \t")
+    print("At 20m this is: \t\t\t\t\t\t", absorption[0] + vegetation + float(ground_effect_dB(r, np.array([[20.,0.,receiver_height]]))) + dbAttenDivergence(20), "dB")
+
+
+
+
+
+fix_parameter("Temperature")
+fix_parameter("Frequency")
+fix_parameter("RH")
 #
-# plot_attenuation_coefficient([5e3, 8e3])
-# plot_attenuation_coefficient([10, 30], x_axis="Frequency", y_axis="RH", tertiary="Temperature")
-# plot_attenuation_coefficient([20, 80], x_axis="Temperature", y_axis="Frequency", tertiary="RH")
+plot_attenuation_coefficient([500, 2e3])
+plot_attenuation_coefficient([10, 30], x_axis="Frequency", y_axis="RH", tertiary="Temperature")
+plot_attenuation_coefficient([20, 80], x_axis="Temperature", y_axis="Frequency", tertiary="RH")
+# freq_range = [500, 1e3, 2e3, 5e3, 10e3]
+# humidity_range = list(np.arange(10, 100, 0.5))
+# temp_range = list(np.arange(0, 35, 0.25))
+#
+# for freq in freq_range:
+#     freq = [freq]
+#
+#     expected_SNR_values(freq, temp_range, humidity_range, 2)
 
-
+#freq_range = list(np.arange(2.5e3 - 0.75e3 / 2, 2.5e3 + 0.75e3 / 2, 100))
 
 # x = np.linspace(1, 80, 100)
 # y = dbAttenDivergence(x, A_0)
